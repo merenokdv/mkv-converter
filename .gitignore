@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*.mkv
+*.mp4
+*.part
+.DS_Store
+*.log
+.venv/
+venv/

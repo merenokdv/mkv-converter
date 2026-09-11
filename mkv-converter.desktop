@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=MP4 → MKV
+Comment=Конвертация видео в MKV без потери качества
+Exec=/home/kot9/myOS/mkv-converter/start.sh
+Path=/home/kot9/myOS/mkv-converter
+Icon=video-x-generic
+Terminal=true
+Type=Application
+Categories=AudioVideo;Video;
+StartupNotify=true

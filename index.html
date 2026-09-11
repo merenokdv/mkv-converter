@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MP4 → MKV без потери качества</title>
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --bg-2: #12151c;
+      --panel: #171b24;
+      --panel-2: #1d2330;
+      --line: rgba(255,255,255,.08);
+      --text: #eef1f6;
+      --muted: #9aa3b5;
+      --faint: #6d7688;
+      --amber: #f0b429;
+      --amber-2: #ffd37a;
+      --green: #3dd68c;
+      --red: #ff6b7a;
+      --blue: #7aa2ff;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font: 15px/1.45 ui-sans-serif, system-ui, "Noto Sans", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(240,180,41,.12), transparent 50%),
+        radial-gradient(900px 400px at 100% 0%, rgba(122,162,255,.10), transparent 45%),
+        var(--bg);
+    }
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px;
+      gap: 16px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo {
+      width: 46px; height: 46px;
+      border-radius: 14px;
+      display: grid; place-items: center;
+      background: linear-gradient(180deg, #2a2418, #16130e);
+      border: 1px solid rgba(240,180,41,.35);
+      color: var(--amber);
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    h1 { font-size: 20px; margin: 0; font-weight: 700; }
+    .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .layout {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.25fr .9fr;
+      gap: 16px;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%), var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .toolbar {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .crumbs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .crumbs button, .chip, button.btn, .icon-btn {
+      font: inherit;
+      cursor: pointer;
+    }
+    .crumbs button {
+      background: none; border: 0; color: var(--blue); padding: 0;
+    }
+    .crumbs button:hover { color: white; }
+    .row {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .chip, .btn, .icon-btn {
+      border-radius: 11px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 8px 12px;
+    }
+    .chip:hover, .icon-btn:hover, .btn:hover { border-color: rgba(255,255,255,.18); }
+    .chip.active { border-color: rgba(240,180,41,.5); color: var(--amber-2); }
+    .btn.primary {
+      background: linear-gradient(180deg, #f3c14a, #d89a14);
+      color: #1a1408;
+      border: 0;
+      font-weight: 700;
+      padding: 12px 16px;
+    }
+    .btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.ghost { background: transparent; }
+    .btn.danger { color: var(--red); }
+    .path-input {
+      flex: 1;
+      min-width: 180px;
+      background: #0f1218;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 9px 12px;
+    }
+    .list {
+      overflow: auto;
+      padding: 8px;
+      flex: 1;
+    }
+    .item {
+      display: grid;
+      grid-template-columns: 28px 28px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 10px;
+      border-radius: 12px;
+    }
+    .item:hover { background: rgba(255,255,255,.04); }
+    .item.broken { background: rgba(255,107,122,.06); }
+    .name {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-weight: 600;
+    }
+    .meta { color: var(--muted); font-size: 12px; }
+    .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .badge.warn { background: rgba(255,107,122,.14); color: #ffb4bc; }
+    .badge.ok { background: rgba(61,214,140,.12); color: var(--green); }
+    .folder { color: #d4b483; cursor: pointer; }
+    input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--amber); }
+    .queue { padding: 16px; overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .q-item {
+      background: #12161f;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .bar {
+      height: 7px;
+      background: #0c0f15;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .bar > i {
+      display: block; height: 100%; width: 0;
+      background: linear-gradient(90deg, #f0b429, #ffe08a);
+    }
+    .bar.done > i { background: var(--green); }
+    .bar.err > i { background: var(--red); width: 100% !important; }
+    .opts {
+      padding: 14px 16px 16px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    label.check { display: flex; gap: 8px; align-items: flex-start; color: var(--muted); font-size: 13px; }
+    .empty {
+      color: var(--faint);
+      padding: 40px 16px;
+      text-align: center;
+    }
+    .status-line { color: var(--muted); font-size: 13px; }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .app { height: auto; }
+      .panel { min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo">MKV</div>
+        <div>
+          <h1>MP4 → MKV без потери качества</h1>
+          <div class="sub">Только смена контейнера. Видео и звук копируются как есть — для ТВ это обычно то, что нужно.</div>
+        </div>
+      </div>
+      <div class="pill">локально · ffmpeg remux · без загрузки в интернет</div>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="toolbar">
+          <div class="crumbs" id="crumbs"></div>
+          <div class="row">
+            <input class="path-input" id="pathInput" spellcheck="false" />
+            <button class="btn" id="goBtn">Открыть</button>
+            <button class="btn ghost" id="upBtn">Вверх</button>
+          </div>
+          <div class="row" id="shortcuts"></div>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="selectAll" /> Все видео в папке</label>
+            <button class="chip" id="addFolderBtn">Добавить папку целиком</button>
+            <span class="status-line" id="folderStats"></span>
+          </div>
+        </div>
+        <div class="list" id="list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <strong>Очередь конвертации</strong>
+          <div class="status-line" id="queueStats">Пусто. Отметьте файлы слева или добавьте папку.</div>
+        </div>
+        <div class="queue" id="queue"></div>
+        <div class="opts">
+          <label class="check"><input type="checkbox" id="sameDir" checked /> Сохранять MKV рядом с исходником</label>
+          <input class="path-input" id="outDir" placeholder="Папка для готовых MKV" style="display:none" />
+          <label class="check"><input type="checkbox" id="overwrite" /> Перезаписывать, если MKV уже есть</label>
+          <label class="check"><input type="checkbox" id="deleteSource" /> Удалить MP4 после успешной конвертации</label>
+          <div class="row">
+            <button class="btn primary" id="startBtn" disabled>Конвертировать в MKV</button>
+            <button class="btn danger ghost" id="cancelBtn" style="display:none">Остановить</button>
+            <button class="btn ghost" id="clearBtn">Очистить очередь</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      path: "",
+      entries: [],
+      parent: null,
+      selected: new Map(),
+      job: null,
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    async function api(url, opts) {
+      const res = await fetch(url, opts);
+      const data = await res.json();
+      if (!res.ok && data.error) throw new Error(data.error);
+      return data;
+    }
+
+    function renderCrumbs(crumbs) {
+      $("crumbs").innerHTML = crumbs.map((c, i) => {
+        const sep = i ? `<span>/</span>` : "";
+        return `${sep}<button data-path="${esc(c.path)}">${esc(c.name)}</button>`;
+      }).join("");
+      $("crumbs").querySelectorAll("button").forEach((btn) => {
+        btn.onclick = () => loadDir(btn.dataset.path);
+      });
+    }
+
+    function fileMeta(entry) {
+      if (!entry.is_video) return entry.is_dir ? "папка" : (entry.size_label || "");
+      if (entry.media && !entry.media.ok) return entry.media.error || "повреждён";
+      const bits = [entry.size_label];
+      if (entry.media && entry.media.label) bits.push(entry.media.label);
+      return bits.filter(Boolean).join(" · ");
+    }
+
+    function renderList() {
+      const box = $("list");
+      if (!state.entries.length) {
+        box.innerHTML = `<div class="empty">Папка пустая</div>`;
+        return;
+      }
+      box.innerHTML = state.entries.map((e) => {
+        const checked = state.selected.has(e.path) ? "checked" : "";
+        const broken = e.media && !e.media.ok;
+        const icon = e.is_dir ? "📁" : (broken ? "⚠️" : "🎬");
+        const badge = broken
+          ? `<span class="badge warn">не готов</span>`
+          : (e.is_video ? `<span class="badge">видео</span>` : `<span class="badge">папка</span>`);
+        const nameClass = e.is_dir ? "name folder" : "name";
+        return `<div class="item ${broken ? "broken" : ""}" data-path="${esc(e.path)}">
+          <input type="checkbox" ${checked} data-check="${esc(e.path)}" ${e.is_dir || e.is_video ? "" : "disabled"} />
+          <div>${icon}</div>
+          <div>
+            <div class="${nameClass}" data-open="${e.is_dir ? esc(e.path) : ""}" title="${esc(e.name)}">${esc(e.name)}</div>
+            <div class="meta">${esc(fileMeta(e))}</div>
+          </div>
+          ${badge}
+        </div>`;
+      }).join("");
+
+      box.querySelectorAll("[data-open]").forEach((el) => {
+        if (el.dataset.open) el.onclick = () => loadDir(el.dataset.open);
+      });
+      box.querySelectorAll("[data-check]").forEach((el) => {
+        el.onchange = async () => {
+          const path = el.dataset.check;
+          if (el.checked) await addPaths([path]);
+          else removePath(path);
+        };
+      });
+    }
+
+    function renderQueue() {
+      const items = [...state.selected.values()];
+      const box = $("queue");
+      const stats = $("queueStats");
+      const jobItems = state.job && state.job.items ? state.job.items : [];
+      const bySrc = Object.fromEntries(jobItems.map((x) => [x.src, x]));
+
+      if (!items.length) {
+        box.innerHTML = `<div class="empty">Очередь пустая</div>`;
+        stats.textContent = "Пусто. Отметьте файлы слева или добавьте папку.";
+        $("startBtn").disabled = true;
+        return;
+      }
+
+      const total = items.reduce((s, i) => s + (i.size || 0), 0);
+      const broken = items.filter((i) => i.media && !i.media.ok).length;
+      stats.textContent = `${items.length} файл(ов) · ${fmtSize(total)}` + (broken ? ` · ${broken} повреждены и будут пропущены` : "");
+      $("startBtn").disabled = !!state.job && state.job.status === "running";
+
+      box.innerHTML = items.map((item) => {
+        const j = bySrc[item.path];
+        const pct = j ? j.percent : 0;
+        const st = j ? j.status : "queued";
+        const barClass = st === "done" || st === "skipped" ? "done" : (st === "error" || st === "cancelled" ? "err" : "");
+        const extra = j && j.error ? j.error : (item.media && !item.media.ok ? item.media.error : (item.media && item.media.label) || "");
+        return `<div class="q-item">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <strong title="${esc(item.path)}">${esc(item.name)}</strong>
+            <span class="badge ${st === "done" ? "ok" : (st === "error" ? "warn" : "")}">${esc(statusLabel(st))}</span>
+          </div>
+          <div class="meta">${esc(item.size_label || "")} · ${esc(item.dir || "")}</div>
+          <div class="meta">${esc(extra || "")}</div>
+          <div class="bar ${barClass}"><i style="width:${pct}%"></i></div>
+        </div>`;
+      }).join("");
+    }
+
+    function statusLabel(st) {
+      return {
+        queued: "в очереди",
+        running: "конвертация",
+        done: "готово",
+        error: "ошибка",
+        skipped: "пропущен",
+        cancelled: "остановлен",
+      }[st] || st;
+    }
+
+    function fmtSize(n) {
+      const u = ["Б","КБ","МБ","ГБ","ТБ"];
+      let i = 0, x = n;
+      while (x >= 1024 && i < u.length-1) { x /= 1024; i++; }
+      return i === 0 ? `${x} ${u[i]}` : `${x.toFixed(1)} ${u[i]}`;
+    }
+
+    async function loadDir(path) {
+      const data = await api("/api/browse?path=" + encodeURIComponent(path || ""));
+      if (!data.ok) { alert(data.error || "Не удалось открыть папку"); return; }
+      state.path = data.path;
+      state.parent = data.parent;
+      state.entries = data.entries;
+      $("pathInput").value = data.path;
+      $("folderStats").textContent =
+        `${data.videos} видео` +
+        (data.broken ? ` · ${data.broken} повреждены` : "") +
+        (data.writable ? "" : " · нет прав на запись — укажите другую папку для MKV");
+      $("selectAll").checked = false;
+      renderCrumbs(data.crumbs);
+      renderList();
+    }
+
+    async function addPaths(paths) {
+      const data = await api("/api/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths }),
+      });
+      for (const item of data.items) state.selected.set(item.path, item);
+      renderList();
+      renderQueue();
+    }
+
+    function removePath(path) {
+      const prefix = path.endsWith("/") ? path : path;
+      for (const key of [...state.selected.keys()]) {
+        if (key === prefix || key.startsWith(prefix + "/")) state.selected.delete(key);
+      }
+      renderList();
+      renderQueue();
+    }
+
+    async function init() {
+      const defaults = await api("/api/defaults");
+      $("shortcuts").innerHTML = defaults.shortcuts.map((s) =>
+        `<button class="chip" data-path="${esc(s.path)}">${esc(s.name)}</button>`
+      ).join("");
+      $("shortcuts").querySelectorAll("button").forEach((b) => b.onclick = () => loadDir(b.dataset.path));
+      await loadDir(defaults.default_dir);
+      connectEvents();
+    }
+
+    function connectEvents() {
+      const es = new EventSource("/api/events");
+      es.onmessage = (ev) => {
+        const data = JSON.parse(ev.data);
+        if (data.type === "job") {
+          state.job = data;
+          const running = data.status === "running";
+          $("startBtn").disabled = running;
+          $("cancelBtn").style.display = running ? "" : "none";
+          if (data.active && data.message) {
+            $("queueStats").textContent = data.message + (data.speed ? ` · ${data.speed}` : "");
+          }
+          renderQueue();
+        }
+      };
+    }
+
+    $("goBtn").onclick = () => loadDir($("pathInput").value);
+    $("pathInput").addEventListener("keydown", (e) => { if (e.key === "Enter") loadDir($("pathInput").value); });
+    $("upBtn").onclick = () => { if (state.parent) loadDir(state.parent); };
+    $("selectAll").onchange = async () => {
+      const videos = state.entries.filter((e) => e.is_video).map((e) => e.path);
+      if ($("selectAll").checked) await addPaths(videos);
+      else videos.forEach(removePath);
+    };
+    $("addFolderBtn").onclick = () => addPaths([state.path]);
+    $("clearBtn").onclick = () => { state.selected.clear(); renderList(); renderQueue(); };
+    $("sameDir").onchange = () => {
+      $("outDir").style.display = $("sameDir").checked ? "none" : "";
+    };
+    $("startBtn").onclick = async () => {
+      const files = [...state.selected.keys()];
+      if (!files.length) return;
+      const body = {
+        files,
+        output_dir: $("sameDir").checked ? null : ($("outDir").value || null),
+        overwrite: $("overwrite").checked,
+        delete_source: $("deleteSource").checked,
+      };
+      try {
+        await api("/api/convert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+    $("cancelBtn").onclick = () => api("/api/cancel", { method: "POST" });
+
+    init().catch((err) => {
+      $("list").innerHTML = `<div class="empty">Не удалось запустить интерфейс: ${esc(err.message)}</div>`;
+    });
+  </script>
+</body>
+</html>
